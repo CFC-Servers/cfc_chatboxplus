@@ -158,53 +158,55 @@ function RICHERTEXT:Init()
 			for l = s.line, e.line do
 				local line = self.lines[l]
 
-				if #line == 0 then continue end
+				if #line ~= 0 then -- This can be replaced with if #line == 0 then continue end, once Jenkins is feelin nicer
 
-				local lastElement = line[#line]
-				local px, py = lastElement:GetPos()
-				local sx = getElementSizeX(lastElement)
-				local startX, endX = getFrom(1, line[1]:GetPos()), px + sx
+					local lastElement = line[#line]
+					local px, py = lastElement:GetPos()
+					local sx = getElementSizeX(lastElement)
+					local startX, endX = getFrom(1, line[1]:GetPos()), px + sx
 
-				if l == s.line then
-					local element = line[s.element]
-					local sx
-					local px, py = element:GetPos()
-					if isLabel(element) then
-						surface.SetFont(element:GetFont())
-						sx = getTextSizeX(string.sub(element:GetText(), 1, s.char-1))
-					else
-						if s.char > 1 then
-							sx = element:GetWide()
+					if l == s.line then
+						local element = line[s.element]
+						local sx
+						local px, py = element:GetPos()
+						if isLabel(element) then
+							surface.SetFont(element:GetFont())
+							sx = getTextSizeX(string.sub(element:GetText(), 1, s.char-1))
 						else
-							sx = 0
+							if s.char > 1 then
+								sx = element:GetWide()
+							else
+								sx = 0
+							end
 						end
+						startX = px + sx
 					end
-					startX = px + sx
-				end
-				if l == e.line then
-					local element = line[e.element]
-					local sx
-					local px, py = element:GetPos()
-					if isLabel(element) then
-						surface.SetFont(element:GetFont())
-						sx = getTextSizeX(string.sub(element:GetText(), 1, e.char))
-					else
-						if e.char > 1 then
-							sx = element:GetWide()
+					if l == e.line then
+						local element = line[e.element]
+						local sx
+						local px, py = element:GetPos()
+						if isLabel(element) then
+							surface.SetFont(element:GetFont())
+							sx = getTextSizeX(string.sub(element:GetText(), 1, e.char))
 						else
-							sx = 0
+							if e.char > 1 then
+								sx = element:GetWide()
+							else
+								sx = 0
+							end
 						end
+						endX = px + sx
 					end
-					endX = px + sx
+
+					local h = self.fontHeight
+
+					if #line == 1 and not isLabel(lastElement) and lastElement:GetTall() > h then
+						h = lastElement:GetTall()
+					end
+
+					surface.DrawRect(startX, (l - 1) * self.fontHeight , endX-startX, h)
+
 				end
-
-				local h = self.fontHeight
-
-				if #line == 1 and not isLabel(lastElement) and lastElement:GetTall() > h then
-					h = lastElement:GetTall()
-				end
-
-				surface.DrawRect(startX, (l - 1) * self.fontHeight , endX-startX, h)
 
 			end
 
