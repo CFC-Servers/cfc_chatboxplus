@@ -66,7 +66,7 @@ function RTG:UpdateGraphic()
 
 		g.Paint = function(im, w, h)
 			
-			if ( !im.m_Material ) then return true end
+			if ( not im.m_Material ) then return true end
 
 			surface.SetMaterial( im.m_Material )
 			surface.SetDrawColor( im.m_Color.r, im.m_Color.g, im.m_Color.b, im.m_Color.a )

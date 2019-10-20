@@ -55,7 +55,7 @@ function RICHERTEXT:Init()
 	self.scrollPanel:GetCanvas():SetSelectionCanvas(true)
 
 	self:setClickEvents(self.scrollPanel)
-	//self:setClickEvents(self.scrollPanel:GetCanvas())
+	--self:setClickEvents(self.scrollPanel:GetCanvas())
 
 	self.scrollPanel:SetScrollbarEnabled(true)
 	self.scrollPanel:Dock(FILL)
@@ -213,7 +213,7 @@ function RICHERTEXT:Init()
 
 	self:OnRemove()
 	hook.Add("RICHERTEXT:NewTextSelection", "NewTextSelection - " .. self.id, function(id)
-		if self.id != id then
+		if self.id ~= id then
 			self:UnselectText()
 		end
 	end)
@@ -407,7 +407,7 @@ function RICHERTEXT:setClickEvents(panel)
 
 						for i = realCharIdx, 1, -1 do
 							local char = lineText[i]
-							if isSpace != (char == " " or char == "\t" or char == "\n") then
+							if isSpace ~= (char == " " or char == "\t" or char == "\n") then
 								sIdx = i+1
 								break
 							end
@@ -416,7 +416,7 @@ function RICHERTEXT:setClickEvents(panel)
 						local eIdx = #lineText
 						for i = realCharIdx, #lineText do
 							local char = lineText[i]
-							if isSpace != (char == " " or char == "\t" or char == "\n") then
+							if isSpace ~= (char == " " or char == "\t" or char == "\n") then
 								eIdx = i-1
 								break
 							end
@@ -707,9 +707,9 @@ function RICHERTEXT:MakeClickable(element)
 	element.isClickable = true
 	rText.lastClick = 0
 	rText.clickCounter = 1
-	//local oldPress = element.OnMousePressed  -- dont rly want old func called tbh
+	--local oldPress = element.OnMousePressed  -- dont rly want old func called tbh
 	element.OnMousePressed = function(self, keyCode)
-		//oldPress(self, keyCode)
+		--oldPress(self, keyCode)
 		if keyCode == MOUSE_LEFT then 
 			if rText.EventHandler then
 
@@ -874,7 +874,7 @@ function RICHERTEXT:AppendText( txt, noLog ) --Deals with the tumour that is tab
 	for k = 1, #tabChunks do
 		local chunk = tabChunks[k]
 		if k == #tabChunks then
-			if #chunk != 0 then
+			if #chunk ~= 0 then
 				self:AppendTextNoTab(chunk)
 			end
 			return
@@ -931,7 +931,7 @@ function RICHERTEXT:AppendTextNoTab( txt ) --This func cannot handle tabs
 
 			self:AddLine()
 
-			if k != #txt then -- If not at the end of the input
+			if k ~= #txt then -- If not at the end of the input
 				line = self.lines[#self.lines] -- Update line var to newly created line
 				self:AddLabel() -- Give it a starting label
 			end
