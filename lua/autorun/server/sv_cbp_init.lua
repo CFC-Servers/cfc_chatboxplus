@@ -1,4 +1,4 @@
-AddCSLuaFile( "../client/cl_cbp_init.lua" )
+AddCSLuaFile( " .. /client/cl_cbp_init.lua" )
 
 AddCSLuaFile( "chatboxplus/client/vgui/drichertext.lua" )
 AddCSLuaFile( "chatboxplus/client/vgui/drichertextgraphic.lua" )
