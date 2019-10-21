@@ -500,7 +500,7 @@ function RICHERTEXT:CharIdxToChar(lineIdx, charIdx)
 	local line = self.lines[lineIdx]
 	if not line then return nil end
 	local char = {line = lineIdx, element = 1}
-	for k=1, #line do
+	for k = 1, #line do
 		local element = line[k]
 		if element.rawTextIdx >= charIdx then break end
 		char.element = k
@@ -596,7 +596,7 @@ function RICHERTEXT:getCharacter(x, y)
 
 	else
 		local ex = element:GetPos()
-		if (x - ex) > element:GetWide()/2 then
+		if (x - ex) > element:GetWide() / 2 then
 			realChar = 2
 		end
 	end
@@ -638,7 +638,7 @@ end
 function RICHERTEXT:AddLine()
 	self.offset.y = self.offset.y + self.fontHeight -- Set offset to start of next line
 	self.offset.x = 0
-	table.insert(self.linesYs, {top = self.offset.y, bottom=self.offset.y + self.fontHeight})
+	table.insert(self.linesYs, {top = self.offset.y, bottom = self.offset.y + self.fontHeight})
 	table.insert(self.lines, {}) -- Add empty line to lines stack
 
 	if #self.lines > self.maxLines then
@@ -702,44 +702,44 @@ function RICHERTEXT:MakeClickable(element)
 	element:SetCursor("hand")
 	local clickVal = self.clickable
 	element.isClickable = true
-	rText.lastClick = 0
-	rText.clickCounter = 1
+	self.lastClick = 0
+	self.clickCounter = 1
 	--local oldPress = element.OnMousePressed  -- dont rly want old func called tbh
-	element.OnMousePressed = function(self, keyCode)
+	element.OnMousePressed = function(eself, keyCode)
 		--oldPress(self, keyCode)
 		if keyCode == MOUSE_LEFT then
-			if rText.EventHandler then
+			if self.EventHandler then
 
-				if CurTime() - rText.lastClick < 0.2 then
-					rText.clickCounter = rText.clickCounter + 1
+				if CurTime() - self.lastClick < 0.2 then
+					self.clickCounter = self.clickCounter + 1
 				else
-					rText.clickCounter = 1
+					self.clickCounter = 1
 				end
-				rText.lastClick = CurTime()
+				self.lastClick = CurTime()
 
 				local tName = "RICHERTEXT_elementClickTimer"
 				if timer.Exists(tName) then return end
 				timer.Create(tName, 0.2, 1, function()
-					if rText.clickCounter == 1 then
-						rText.EventHandler("LeftClick", clickVal)
-					elseif rText.clickCounter == 2 then
-						rText.EventHandler("DoubleClick", clickVal)
+					if self.clickCounter == 1 then
+						self.EventHandler("LeftClick", clickVal)
+					elseif self.clickCounter == 2 then
+						self.EventHandler("DoubleClick", clickVal)
 					end
 				end)
 			end
 		elseif keyCode == MOUSE_RIGHT then
-			if rText.EventHandler then
+			if self.EventHandler then
 				local m = DermaMenu()
-				local dontOpen = rText.EventHandler("RightClickPreMenu", clickVal, m)
+				local dontOpen = self.EventHandler("RightClickPreMenu", clickVal, m)
 
-				rText:createContextMenu(true, m)
+				self:createContextMenu(true, m)
 
-				dontOpen = dontOpen or rText.EventHandler("RightClick", clickVal, m)
+				dontOpen = dontOpen or self.EventHandler("RightClick", clickVal, m)
 				if not dontOpen then
 					m:Open()
 				end
 			else
-				rText:createContextMenu()
+				self:createContextMenu()
 			end
 		end
 	end
@@ -748,7 +748,7 @@ end
 function RICHERTEXT:AddLabel()
 	local line = self.lines[#self.lines] -- Get last line
 	local idx = self:PrepNewElement()
-	
+
 	local label = vgui.Create( "DLabel", self.scrollPanel:GetCanvas() ) -- Make a fokin label
 	label:SetFont(self.innerFont)
 	label:SetTextColor(self.textColor)
@@ -760,8 +760,8 @@ function RICHERTEXT:AddLabel()
 	label:SetMouseInputEnabled( true )
 	label:MoveToFront()
 
-	label.SetDoRender = function(self, v)
-		self:SetVisible(v)
+	label.SetDoRender = function(lself, v)
+		lself:SetVisible(v)
 	end
 
 	self:setClickEvents(label) -- Set its events (right click menu and text select events)
@@ -773,7 +773,7 @@ function RICHERTEXT:AddLabel()
 	if self.NewElement then
 		self.NewElement(label, #self.lines) -- Call the new element func
 	end
-	
+
 	table.insert(line, label) -- pop new label in line stack
 	local scrollBar = self.scrollPanel:GetVBar()
 	if scrollBar.Scroll >= scrollBar.CanvasSize-1 then -- If current scroll at bottom, update for new message
@@ -818,26 +818,26 @@ function RICHERTEXT:addNewLines( txt ) -- Goes through big bit of text, puts in 
 	local data = string.Explode(" ", txt)
 	local out = {}
 	surface.SetFont(self.innerFont)
-	local k = 1
+	local i = 1
 	local loopLimit = 200
-	while k <= #data and loopLimit > 0 do
+	while i <= #data and loopLimit > 0 do
 		loopLimit = loopLimit - 1
-		local word = data[k] .. ( k == #data and "" or " " )
+		local word = data[i] .. ( i == #data and "" or " " )
 		local sizeX = getFrom(1, surface.GetTextSize(word))
 		if offsetX + sizeX > limitX then
 			if not isNewLineObj(out[#out]) and #out > 0 then
-				table.insert(out, {isNewLine=true})
-				k = k - 1
+				table.insert(out, {isNewLine = true})
+				i = i - 1
 				offsetX = 0
 			else
 				for l = 20, #word do
 					local str = string.Left(word, l)
-					local sizeX = getFrom(1, surface.GetTextSize(str))
+					sizeX = getFrom(1, surface.GetTextSize(str))
 					if offsetX + sizeX > limitX - 10 then
 						table.insert(out, string.Left(word, l - 1))
-						table.insert(out, {isNewLine=true})
-						data[k] = string.Right(word, #word - l + 1)
-						k = k - 1
+						table.insert(out, {isNewLine = true})
+						data[i] = string.Right(word, #word - l + 1)
+						i = i - 1
 						offsetX = 0
 						break
 					end
@@ -847,7 +847,7 @@ function RICHERTEXT:addNewLines( txt ) -- Goes through big bit of text, puts in 
 			table.insert(out, word)
 			offsetX = offsetX + sizeX
 		end
-		k = k + 1
+		i = i + 1
 	end
 	local nlPoses = {}
 	local pCounter = 1
@@ -897,7 +897,6 @@ function RICHERTEXT:AppendText( txt, noLog ) --Deals with the tumour that is tab
 		end
 		self:AddLabel()
 	end
-	
 end
 
 function RICHERTEXT:AppendTextNoTab( txt ) --This func cannot handle tabs
@@ -999,7 +998,7 @@ function RICHERTEXT:AddGraphic(element, rawText)
 			self:AddLine()
 		end
 	else
-		
+
 		if self.offset.x + w > limitX then
 			self:AddLine()
 		end
@@ -1023,7 +1022,7 @@ function RICHERTEXT:AddGraphic(element, rawText)
 	if self.NewElement then
 		self.NewElement(element, #self.lines) -- Call the new element func
 	end
-	
+
 	local scrollBar = self.scrollPanel:GetVBar()
 	if scrollBar.Scroll >= scrollBar.CanvasSize - 1 then -- If current scroll at bottom, update for new message
 		self:scrollToBottom()
