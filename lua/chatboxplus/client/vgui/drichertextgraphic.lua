@@ -65,7 +65,7 @@ function RTG:UpdateGraphic()
 		g.useOffset = self.useOffset
 
 		g.Paint = function(im, w, h)
-			
+
 			if ( not im.m_Material ) then return true end
 
 			surface.SetMaterial( im.m_Material )

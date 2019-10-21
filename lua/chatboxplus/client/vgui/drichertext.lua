@@ -168,13 +168,13 @@ function RICHERTEXT:Init()
 						endX = getSelectionDrawPosition(e, true)
 					end
 
-					local h = self.fontHeight
+					local fh = self.fontHeight
 
-					if #line == 1 and not isLabel(lastElement) and lastElement:GetTall() > h then
-						h = lastElement:GetTall()
+					if #line == 1 and not isLabel(lastElement) and lastElement:GetTall() > fh then
+						fh = lastElement:GetTall()
 					end
 
-					surface.DrawRect(startX, (l - 1) * self.fontHeight , endX-startX, h)
+					surface.DrawRect(startX, (l - 1) * self.fontHeight , endX-startX, fh)
 
 				end
 
@@ -192,15 +192,15 @@ function RICHERTEXT:Init()
 
 	hook.Add("RICHERTEXT:CopyText", "CopyText - " .. self.id, function()
 		local t = self:GetSelectedText()
-		if t then 
-			return t 
+		if t then
+			return t
 		end
 	end)
 
 	self.lines = {{}}
 	self.offset = {x = 0, y = 0}
 	self.fontHeight = 20
-	self.linesYs = {{top = 0, bottom=self.fontHeight}}
+	self.linesYs = {{top = 0, bottom = self.fontHeight}}
 	self.innerFont = "Default"
 	self.addNewLine = false
 	self.doFormatting = true
@@ -270,7 +270,7 @@ function RICHERTEXT:Reload() -- Clear the text, reset a bunch of shit, then run 
 	end
 
 	self.lines = {{}}
-	self.linesYs = {{top = 0, bottom=self.fontHeight}}
+	self.linesYs = {{top = 0, bottom = self.fontHeight}}
 	self.select.hasSelection = false
 	self.textColor = Color(255,255,255,255)
 	self.clickable = nil
@@ -291,7 +291,7 @@ function RICHERTEXT:Reload() -- Clear the text, reset a bunch of shit, then run 
 	self.logCopy = table.Copy(self.log)
 	self.log = {}
 
-	for k=1, #self.logCopy do
+	for k = 1, #self.logCopy do
 		funcs[self.logCopy[k].type](self, unpack(self.logCopy[k].data or {}))
 	end
 
@@ -305,24 +305,24 @@ function RICHERTEXT:OnRemove()
 end
 
 function orderChars(s, e)
-	if s.line < e.line then 
+	if s.line < e.line then
 		return s, e
 	elseif s.line > e.line then
 		return e, s
 	end
 
-	if s.element < e.element then 
+	if s.element < e.element then
 		return s, e
 	elseif s.element > e.element then
 		return e, s
 	end
 
-	if s.char > e.char then 
+	if s.char > e.char then
 		return e, s
 	end
 
 	return s, e
-	
+
 end
 
 function RICHERTEXT:createContextMenu(dontOpen, m)
@@ -355,104 +355,113 @@ end
 
 function RICHERTEXT:setClickEvents(panel)
 	local prevMousePressed = panel.OnMousePressed
-	panel.OnMousePressed = function(panel, keyCode)
+	local rtext = self
+	panel.OnMousePressed = function(self, keyCode)
 		if keyCode == MOUSE_LEFT then
-			if self.lines and #self.lines >= 1 and #self.lines[1] >= 1 then 
-				hook.Run("RICHERTEXT:NewTextSelection", self.id)
-				if CurTime() - self.select.lastClick < 0.2 then
-					self.select.clickCounter = self.select.clickCounter + 1
+			if rtext.lines and #rtext.lines >= 1 and #rtext.lines[1] >= 1 then 
+				hook.Run("RICHERTEXT:NewTextSelection", rtext.id)
+				if CurTime() - rtext.select.lastClick < 0.2 then
+					rtext.select.clickCounter = rtext.select.clickCounter + 1
 				else
-					self.select.clickCounter = 1
+					rtext.select.clickCounter = 1
 				end
-				self.select.lastClick = CurTime()
+				rtext.select.lastClick = CurTime()
 
-				if self.select.clickCounter > 1 then
-					self.select.clickCounter = ((self.select.clickCounter) % 2) + 2 --make it loop quad back to double, and quin to trip etc. so 1,2,3,4,5 -> 1,2,3,2,3
+				if rtext.select.clickCounter > 1 then
+					rtext.select.clickCounter = (rtext.select.clickCounter % 2) + 2 --make it loop quad back to double, and quin to trip etc. so 1,2,3,4,5 -> 1,2,3,2,3
 				end
 
-				local x, y = self:ScreenToCanvas(gui.MousePos())
-				self.select.startPos = {x=x, y=y}
-				self.select.startChar = self:getCharacter(self.select.startPos.x, self.select.startPos.y)
+				local x, y = rtext:ScreenToCanvas(gui.MousePos())
+				rtext.select.startPos = {x = x, y = y}
+				rtext.select.startChar = rtext:getCharacter(rtext.select.startPos.x, rtext.select.startPos.y)
 
-				if self.select.clickCounter == 1 then
-					self.select.mouseDown = true
-				elseif self.select.clickCounter == 2 then
-					self.select.mouseDown = false
-					--do this one somehow
-					local c = self.select.startChar
-					local lineText = self:GetLineRaw(c.line)
-
-					local element = self.lines[c.line][c.element]
-
-					if isLabel(element) then
-
-						local realCharIdx = element.rawTextIdx + c.char - 1
-
-						local sIdx = 1
-						local isSpace = false
-						if lineText[realCharIdx] == " " or lineText[realCharIdx] == "\t" or lineText[realCharIdx] == "\n" then
-							isSpace = true --selecting spaces/tabs
-						end
-
-						for i = realCharIdx, 1, -1 do
-							local char = lineText[i]
-							if isSpace ~= (char == " " or char == "\t" or char == "\n") then
-								sIdx = i+1
-								break
-							end
-						end
-
-						local eIdx = #lineText
-						for i = realCharIdx, #lineText do
-							local char = lineText[i]
-							if isSpace ~= (char == " " or char == "\t" or char == "\n") then
-								eIdx = i-1
-								break
-							end
-						end
-
-						self.select.startChar = self:CharIdxToChar(c.line, sIdx+1)
-						self.select.endChar = self:CharIdxToChar(c.line, eIdx+1)
-					else
-						self.select.startChar = c
-						local ec = table.Copy(c)
-						ec.char = ec.char + 1
-						self.select.endChar = ec
-					end
-					self.select.hasSelection = true
-				elseif self.select.clickCounter == 3 then
-					self.select.mouseDown = false
-					self.select.startChar.element = 1
-					self.select.startChar.char = 1
-					local sChar = self.select.startChar
-					local line = self.lines[sChar.line]
-
-					self.select.endChar = {
-						line = sChar.line, 
-						element = #line, 
-						char = (isLabel(line[#line]) and (#line[#line]:GetText()) or 2)
-					}
-					self.select.hasSelection = true
+				if rtext.select.clickCounter == 1 then
+					rtext.select.mouseDown = true
+				elseif rtext.select.clickCounter == 2 then
+					rtext:handleDoubleClick()
+				elseif rtext.select.clickCounter == 3 then
+					rText:handleTripleClick()
 				end
 			end
 		elseif keyCode == MOUSE_RIGHT then
-			self:createContextMenu()
+			rtext:createContextMenu()
 		end
 
 		if prevMousePressed then
-			prevMousePressed(panel, keyCode)
+			prevMousePressed(self, keyCode)
 		end
 	end
 	local prevMouseReleased = panel.OnMouseReleased
-	panel.OnMouseReleased = function(panel, keyCode)
+	panel.OnMouseReleased = function(self, keyCode)
 		if keyCode == MOUSE_LEFT then
-			self.select.mouseDown = false
+			rtext.select.mouseDown = false
 		end
 		if prevMouseReleased then
-			prevMouseReleased(panel, keyCode)
+			prevMouseReleased(self, keyCode)
 		end
 	end
 	panel:SetCursor("beam")
+end
+
+function RICHERTEXT:handleDoubleClick()
+	self.select.mouseDown = false
+
+	local c = self.select.startChar
+	local lineText = self:GetLineRaw(c.line)
+
+	local element = self.lines[c.line][c.element]
+
+	if isLabel(element) then
+
+		local realCharIdx = element.rawTextIdx + c.char - 1
+
+		local sIdx = 1
+		local isSpace = false
+		if lineText[realCharIdx] == " " or lineText[realCharIdx] == "\t" or lineText[realCharIdx] == "\n" then
+			isSpace = true --selecting spaces/tabs
+		end
+
+		for i = realCharIdx, 1, -1 do
+			local char = lineText[i]
+			if isSpace ~= (char == " " or char == "\t" or char == "\n") then
+				sIdx = i + 1
+				break
+			end
+		end
+
+		local eIdx = #lineText
+		for i = realCharIdx, #lineText do
+			local char = lineText[i]
+			if isSpace ~= (char == " " or char == "\t" or char == "\n") then
+				eIdx = i - 1
+				break
+			end
+		end
+
+		self.select.startChar = self:CharIdxToChar(c.line, sIdx + 1)
+		self.select.endChar = self:CharIdxToChar(c.line, eIdx + 1)
+	else
+		self.select.startChar = c
+		local ec = table.Copy(c)
+		ec.char = ec.char + 1
+		self.select.endChar = ec
+	end
+	self.select.hasSelection = true
+end
+
+function RICHERTEXT:handleTripleClick()
+	self.select.mouseDown = false
+	self.select.startChar.element = 1
+	self.select.startChar.char = 1
+	local sChar = self.select.startChar
+	local line = self.lines[sChar.line]
+
+	self.select.endChar = {
+		line = sChar.line, 
+		element = #line, 
+		char = (isLabel(line[#line]) and (#line[#line]:GetText()) or 2)
+	}
+	self.select.hasSelection = true
 end
 
 function RICHERTEXT:UnselectText()
