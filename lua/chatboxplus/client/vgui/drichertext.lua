@@ -162,10 +162,10 @@ function RICHERTEXT:Init()
 					local startX, endX = getFrom(1, line[1]:GetPos()), px + sx
 
 					if l == s.line then
-						startX = getSelectionDrawPosition(s)
+						startX = getSelectionDrawPosition(line, s)
 					end
 					if l == e.line then
-						endX = getSelectionDrawPosition(e, true)
+						endX = getSelectionDrawPosition(line, e, true)
 					end
 
 					local fh = self.fontHeight
@@ -215,7 +215,7 @@ function RICHERTEXT:Init()
 	self.ready = true
 end
 
-function getSelectionDrawPosition(char, isEnd)
+function getSelectionDrawPosition(line, char, isEnd)
 	local element = line[char.element]
 	local sx
 	local px = element:GetPos()
@@ -355,49 +355,48 @@ end
 
 function RICHERTEXT:setClickEvents(panel)
 	local prevMousePressed = panel.OnMousePressed
-	local rtext = self
-	panel.OnMousePressed = function(self, keyCode)
+	panel.OnMousePressed = function(pself, keyCode)
 		if keyCode == MOUSE_LEFT then
-			if rtext.lines and #rtext.lines >= 1 and #rtext.lines[1] >= 1 then 
-				hook.Run("RICHERTEXT:NewTextSelection", rtext.id)
-				if CurTime() - rtext.select.lastClick < 0.2 then
-					rtext.select.clickCounter = rtext.select.clickCounter + 1
+			if self.lines and #self.lines >= 1 and #self.lines[1] >= 1 then
+				hook.Run("RICHERTEXT:NewTextSelection", self.id)
+				if CurTime() - self.select.lastClick < 0.2 then
+					self.select.clickCounter = self.select.clickCounter + 1
 				else
-					rtext.select.clickCounter = 1
+					self.select.clickCounter = 1
 				end
-				rtext.select.lastClick = CurTime()
+				self.select.lastClick = CurTime()
 
-				if rtext.select.clickCounter > 1 then
-					rtext.select.clickCounter = (rtext.select.clickCounter % 2) + 2 --make it loop quad back to double, and quin to trip etc. so 1,2,3,4,5 -> 1,2,3,2,3
+				if self.select.clickCounter > 1 then
+					self.select.clickCounter = (self.select.clickCounter % 2) + 2 --make it loop quad back to double, and quin to trip etc. so 1,2,3,4,5 -> 1,2,3,2,3
 				end
 
-				local x, y = rtext:ScreenToCanvas(gui.MousePos())
-				rtext.select.startPos = {x = x, y = y}
-				rtext.select.startChar = rtext:getCharacter(rtext.select.startPos.x, rtext.select.startPos.y)
+				local x, y = self:ScreenToCanvas(gui.MousePos())
+				self.select.startPos = {x = x, y = y}
+				self.select.startChar = self:getCharacter(self.select.startPos.x, self.select.startPos.y)
 
-				if rtext.select.clickCounter == 1 then
-					rtext.select.mouseDown = true
-				elseif rtext.select.clickCounter == 2 then
-					rtext:handleDoubleClick()
-				elseif rtext.select.clickCounter == 3 then
-					rText:handleTripleClick()
+				if self.select.clickCounter == 1 then
+					self.select.mouseDown = true
+				elseif self.select.clickCounter == 2 then
+					self:handleDoubleClick()
+				elseif self.select.clickCounter == 3 then
+					self:handleTripleClick()
 				end
 			end
 		elseif keyCode == MOUSE_RIGHT then
-			rtext:createContextMenu()
+			self:createContextMenu()
 		end
 
 		if prevMousePressed then
-			prevMousePressed(self, keyCode)
+			prevMousePressed(pself, keyCode)
 		end
 	end
 	local prevMouseReleased = panel.OnMouseReleased
-	panel.OnMouseReleased = function(self, keyCode)
+	panel.OnMouseReleased = function(pself, keyCode)
 		if keyCode == MOUSE_LEFT then
-			rtext.select.mouseDown = false
+			self.select.mouseDown = false
 		end
 		if prevMouseReleased then
-			prevMouseReleased(self, keyCode)
+			prevMouseReleased(pself, keyCode)
 		end
 	end
 	panel:SetCursor("beam")
@@ -457,9 +456,9 @@ function RICHERTEXT:handleTripleClick()
 	local line = self.lines[sChar.line]
 
 	self.select.endChar = {
-		line = sChar.line, 
-		element = #line, 
-		char = (isLabel(line[#line]) and (#line[#line]:GetText()) or 2)
+		line = sChar.line,
+		element = #line,
+		char = isLabel(line[#line]) and #line[#line]:GetText() or 2
 	}
 	self.select.hasSelection = true
 end
@@ -477,10 +476,10 @@ function RICHERTEXT:ScreenToCanvas(x, y)
 	local sPanel = self.scrollPanel
 
 	local px,py = sPanel:LocalToScreen(0,0)
-	local sx,sy = sPanel:GetSize()
-	local rMousePos = {x=x-px, y=y-py}
+	local sy = sPanel:GetTall()
+	local rMousePos = {x = x - px, y = y - py}
 
-	local csx, csy = sPanel:GetCanvas():GetSize()
+	local csy = sPanel:GetCanvas():GetTall()
 	local vBar = sPanel:GetVBar()
 	local scrollProp = vBar.Scroll / vBar.CanvasSize
 	rMousePos.y = rMousePos.y + math.max(0, scrollProp * (csy - sy))
@@ -491,7 +490,7 @@ function RICHERTEXT:GetLineRaw(lineIdx)
 	local line = self.lines[lineIdx]
 	if not line then return "" end
 	local str = ""
-	for k=1, #line do
+	for k = 1, #line do
 		str = str .. line[k].rawText
 	end
 	return str
@@ -521,7 +520,7 @@ function RICHERTEXT:GetSelectedText()
 		local sChar, eChar = 1, #lineTxt
 
 		if l == s.line then
-			if not isLabel(line[s.element]) and s.char == 2 then 
+			if not isLabel(line[s.element]) and s.char == 2 then
 				sChar = line[s.element].rawTextIdx + #line[s.element].rawText
 			else
 				sChar = line[s.element].rawTextIdx + s.char - 1
@@ -543,7 +542,7 @@ end
 
 function RICHERTEXT:getCharacter(x, y)
 	local lineNum = math.floor(y / self.fontHeight) + 1 --calc line easily, since all lines are same width
-	lineNum = math.Clamp(lineNum, 1, #self.lines-1)
+	lineNum = math.Clamp(lineNum, 1, #self.lines - 1)
 	local line = self.lines[lineNum]
 
 	while #line == 0 do
@@ -556,8 +555,8 @@ function RICHERTEXT:getCharacter(x, y)
 	x = math.max(x, getFrom(1, line[1]:GetPos()))  -- clamp x to x of first element
 	for k = 2, #line do
 		local curStart = getFrom(1, line[k]:GetPos())
-		local prevEnd = getFrom(1, line[k-1]:GetPos()) + getElementSizeX(line[k-1])
-		if (prevEnd + curStart)/2 >= x then break end --loop through all elements in that line until find a element with posX > x, set elementNum to idx of previous
+		local prevEnd = getFrom(1, line[k - 1]:GetPos()) + getElementSizeX(line[k - 1])
+		if (prevEnd + curStart) / 2 >= x then break end --loop through all elements in that line until find a element with posX > x, set elementNum to idx of previous
 		elementNum = k
 	end
 	x = math.max(x, getFrom(1, line[elementNum]:GetPos())) -- clamp x to x of selected element
@@ -566,8 +565,8 @@ function RICHERTEXT:getCharacter(x, y)
 
 	if isLabel(element) then
 		local elementText = element:GetText()
-		local lpx, lpy = element:GetPos()
-		local lsx, lsy = element:GetTextSize()
+		local lpx = element:GetPos()
+		local lsx = element:GetTextSize()
 		local estimateChar = math.floor( ( (x - lpx) / lsx ) * #elementText) + 1 --estimate the character position assuming all characters are same width (this optimises things)
 		estimateChar = math.min(estimateChar, #elementText)
 
@@ -596,12 +595,12 @@ function RICHERTEXT:getCharacter(x, y)
 		end
 
 	else
-		local ex, ey = element:GetPos()
+		local ex = element:GetPos()
 		if (x - ex) > element:GetWide()/2 then
 			realChar = 2
 		end
 	end
-	return {line = lineNum, element = elementNum, char = realChar, pos = {x=x,y=y}}
+	return {line = lineNum, element = elementNum, char = realChar, pos = {x = x,y = y}}
 end
 
 function getElementSize( elem, subHalfChar )
@@ -609,7 +608,7 @@ function getElementSize( elem, subHalfChar )
 		surface.SetFont(elem:GetFont())
 		local txt = elem:GetText()
 		local sx, sy = surface.GetTextSize(txt)
-		return sx - (subHalfChar and getFrom(1, surface.GetTextSize(txt[#txt]))/2 or 0), sy
+		return sx - (subHalfChar and getFrom(1, surface.GetTextSize(txt[#txt])) / 2 or 0), sy
 	else
 		return elem:GetWide()
 	end
@@ -708,7 +707,7 @@ function RICHERTEXT:MakeClickable(element)
 	--local oldPress = element.OnMousePressed  -- dont rly want old func called tbh
 	element.OnMousePressed = function(self, keyCode)
 		--oldPress(self, keyCode)
-		if keyCode == MOUSE_LEFT then 
+		if keyCode == MOUSE_LEFT then
 			if rText.EventHandler then
 
 				if CurTime() - rText.lastClick < 0.2 then
@@ -719,15 +718,14 @@ function RICHERTEXT:MakeClickable(element)
 				rText.lastClick = CurTime()
 
 				local tName = "RICHERTEXT_elementClickTimer"
-				if not timer.Exists(tName) then 
-					timer.Create(tName, 0.2, 1, function()
-						if rText.clickCounter == 1 then
-							rText.EventHandler("LeftClick", clickVal)
-						elseif rText.clickCounter == 2 then
-							rText.EventHandler("DoubleClick", clickVal)
-						end
-					end)
-				end
+				if timer.Exists(tName) then return end
+				timer.Create(tName, 0.2, 1, function()
+					if rText.clickCounter == 1 then
+						rText.EventHandler("LeftClick", clickVal)
+					elseif rText.clickCounter == 2 then
+						rText.EventHandler("DoubleClick", clickVal)
+					end
+				end)
 			end
 		elseif keyCode == MOUSE_RIGHT then
 			if rText.EventHandler then
@@ -788,13 +786,13 @@ end
 
 function RICHERTEXT:scrollToBottom(hideBtn)
 	if not self:IsReady() then return end
-	local id = "richTextScrollBottom - "..self.id
-	if timer.Exists(id) then timer.Destroy(id) end
+	local id = "richTextScrollBottom - " .. self.id
+	if timer.Exists(id) then timer.Remove(id) end
 	timer.Create(id, 0.05, 1, function()
 		if not self.lines or #self.lines < 11 then return end
 		local line = self.lines[#self.lines]
 		local element = line[1]
-		if not element then 
+		if not element then
 			line = self.lines[#self.lines - 1]
 			element = line[1]
 		end
@@ -835,7 +833,7 @@ function RICHERTEXT:addNewLines( txt ) -- Goes through big bit of text, puts in 
 				for l = 20, #word do
 					local str = string.Left(word, l)
 					local sizeX = getFrom(1, surface.GetTextSize(str))
-					if offsetX + sizeX > limitX-10 then
+					if offsetX + sizeX > limitX - 10 then
 						table.insert(out, string.Left(word, l - 1))
 						table.insert(out, {isNewLine=true})
 						data[k] = string.Right(word, #word - l + 1)
@@ -888,11 +886,11 @@ function RICHERTEXT:AppendText( txt, noLog ) --Deals with the tumour that is tab
 			self.offset.x = self.offset.x + getElementSizeX(lastElement) -- Push offset to end of line if its not empty
 		end
 
-		local modVal = (self.offset.x/self.tabSize) % 1 -- Find out how far through a tab we are
+		local modVal = (self.offset.x / self.tabSize) % 1 -- Find out how far through a tab we are
 		if modVal > 0.9 or modVal < 0.01 then
-			self.offset.x = self.offset.x + self.tabSize -- If very close to end or basically at the start, add an extra tab. 
+			self.offset.x = self.offset.x + self.tabSize -- If very close to end or basically at the start, add an extra tab.
 		end
-		self.offset.x = (math.ceil(self.offset.x/self.tabSize) * self.tabSize) -- Push current offset value up to next multiple of tabSize
+		self.offset.x = (math.ceil(self.offset.x / self.tabSize) * self.tabSize) -- Push current offset value up to next multiple of tabSize
 
 		if lastElement then
 			self.offset.x = self.offset.x - getElementSizeX(lastElement) -- This will be added back when AddLabel is called
@@ -914,7 +912,7 @@ function RICHERTEXT:AppendTextNoTab( txt ) --This func cannot handle tabs
 
 		if char == "\n" then --Add character to curText buffer until reach a newline char
 			local lastElement = line[#line] -- This will exist due to previous AddElement in this func
-			if not isLabel(lastElement) then 
+			if not isLabel(lastElement) then
 				self:AddLabel()
 				lastElement = line[#line]
 			end
@@ -940,15 +938,15 @@ function RICHERTEXT:AppendTextNoTab( txt ) --This func cannot handle tabs
 		end
 	end
 	if #curText > 0 then -- If no newline at end, buffer will still have text
-		local lastElement = line[#line] 
-		if not isLabel(lastElement) then 
+		local lastElement = line[#line]
+		if not isLabel(lastElement) then
 			self:AddLabel()
 			lastElement = line[#line]
 		end
 		local tmpText = lastElement:GetText() .. string.Replace(curText, "\t", "")
 		if tmpText[1] == "#" then tmpText = "#" .. tmpText end --dLabels remove the first character if its a hash, so add in new one to counter that
 		lastElement:SetText(tmpText)
-		lastElement.rawText = lastElement.rawText .. curText -- Basically do the shit from the start of new line 
+		lastElement.rawText = lastElement.rawText .. curText -- Basically do the shit from the start of new line
 	end
 end
 function RICHERTEXT:InsertColorChange(r, g, b, a)
@@ -997,7 +995,7 @@ function RICHERTEXT:AddGraphic(element, rawText)
 
 		element:SetPos(5 + imagePadding + self.offset.x, self.offset.y - self.yRemoved)
 		local newLines = math.ceil(h / self.fontHeight)
-		for k=1, newLines do
+		for k = 1, newLines do
 			self:AddLine()
 		end
 	else
@@ -1010,7 +1008,7 @@ function RICHERTEXT:AddGraphic(element, rawText)
 
 		element:SetPos(5 + imagePadding + self.offset.x, self.offset.y - self.yRemoved)
 
-		self.offset.x = self.offset.x + (imagePadding*2)
+		self.offset.x = self.offset.x + (imagePadding * 2)
 		table.insert(line, element) -- pop new element in line stack
 	end
 
@@ -1027,7 +1025,7 @@ function RICHERTEXT:AddGraphic(element, rawText)
 	end
 	
 	local scrollBar = self.scrollPanel:GetVBar()
-	if scrollBar.Scroll >= scrollBar.CanvasSize-1 then -- If current scroll at bottom, update for new message
+	if scrollBar.Scroll >= scrollBar.CanvasSize - 1 then -- If current scroll at bottom, update for new message
 		self:scrollToBottom()
 	end
 	table.insert(self.graphics, element)
@@ -1047,7 +1045,7 @@ function RICHERTEXT:AddGif(...)
 end
 
 function RICHERTEXT:CreateGraphic(t, path, text, sizeX, sizeY, imOffsetX, imOffsetY, imSizeX, imSizeY)
-	if not self.doFormatting or not self.showImages then 
+	if not self.doFormatting or not self.showImages then
 		self:AppendText("[" .. text .. "]", true)
 		return
 	end
