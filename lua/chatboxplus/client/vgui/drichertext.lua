@@ -643,7 +643,7 @@ function RICHERTEXT:AddLine()
 
 	if #self.lines > self.maxLines then
 		local offset = 0
-		while(#self.lines > self.maxLines) do
+		while #self.lines > self.maxLines do
 			for k, v in pairs(self.lines[1]) do
 				v:Remove()
 			end
@@ -697,8 +697,6 @@ function RICHERTEXT:UpdateLineHeight()
 end
 
 function RICHERTEXT:MakeClickable(element)
-	local rText = self
-
 	element:SetCursor("hand")
 	local clickVal = self.clickable
 	element.isClickable = true
