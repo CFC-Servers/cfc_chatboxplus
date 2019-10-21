@@ -7,11 +7,11 @@ local upArrowLeft = {
 	{x = 8, y = 0},
 	{x = 11, y = 3},
 	{x = 3, y = 9},
-}	
+}
 local upArrowRight = {
 	{x = 8, y = 5},
 	{x = 11, y = 3},
-	{x = 15, y = 7},	
+	{x = 15, y = 7},
 	{x = 12, y = 9}
 }
 
@@ -59,8 +59,6 @@ function RICHERTEXT:Init()
 
 	self.scrollPanel:SetScrollbarEnabled(true)
 	self.scrollPanel:Dock(FILL)
-	local scrollBar = self.scrollPanel:GetVBar()
-	local ownSelf = self
 
 	self.select = {}
 	self.select.lastClick = 0
@@ -73,10 +71,10 @@ function RICHERTEXT:Init()
 	self.Think = function()
 		if self.select.mouseDown then
 			local sPanel = self.scrollPanel
-			local x,y = gui.MousePos()
+			local mx,my = gui.MousePos()
 			local px,py = sPanel:LocalToScreen(0,0)
 			local sx,sy = sPanel:GetSize()
-			local x, y = math.Clamp(x, px, px+sx), math.Clamp(y, py, py+sy)
+			local x, y = math.Clamp(mx, px, px + sx), math.Clamp(my, py, py + sy)
 
 			local lx, ly = self:ScreenToCanvas(x, y)
 			local cd = self:getCharacter(lx, ly)
@@ -93,7 +91,7 @@ function RICHERTEXT:Init()
 		end
 		local scrollBar = self.scrollPanel:GetVBar()
 		self.showSTBButton = scrollBar.Scroll < scrollBar.CanvasSize-100
-		
+
 		if self.STBButtonAnim < 100 and self.showSTBButton then
 			if self.STBButtonAnim == 0 then
 				self.scrollToBottomBtn:Show()
@@ -108,15 +106,15 @@ function RICHERTEXT:Init()
 			end
 		end
 		if self.STBButtonAnim == 0 then self.STBHide = false end
-		self.scrollToBottomBtn.m_Image:SetImageColor(Color(255,255,255, self.STBHide and 0 or self.STBButtonAnim*2.55))
+		self.scrollToBottomBtn.m_Image:SetImageColor(Color(255, 255, 255, self.STBHide and 0 or self.STBButtonAnim * 2.55))
 
 		if self.lastScroll ~= scrollBar.Scroll then
 			self.lastScroll = scrollBar.Scroll
 
 			local sPanel = self.scrollPanel
-			local sx,sy = sPanel:GetSize()
+			local sy = sPanel:GetTall()
 
-			local csx, csy = sPanel:GetCanvas():GetSize()
+			local csy = sPanel:GetCanvas():GetTall()
 
 			-- before
 			local scrollProp = self.lastScroll / scrollBar.CanvasSize
@@ -137,9 +135,7 @@ function RICHERTEXT:Init()
 
 	self.scrollToBottomBtn = vgui.Create("DImageButton", self)
 	self.scrollToBottomBtn:SetImage("icons/triple_arrows.png")
-	self.scrollToBottomBtn.Paint = function(self, w, h)
-
-	end
+	self.scrollToBottomBtn.Paint = function() end
 	self.scrollToBottomBtn:SetSize(32, 32)
 	self.scrollToBottomBtn.DoClick = function()
 		self:scrollToBottom()
@@ -161,41 +157,15 @@ function RICHERTEXT:Init()
 				if #line ~= 0 then -- This can be replaced with if #line == 0 then continue end, once Jenkins is feelin nicer
 
 					local lastElement = line[#line]
-					local px, py = lastElement:GetPos()
+					local px = lastElement:GetPos()
 					local sx = getElementSizeX(lastElement)
 					local startX, endX = getFrom(1, line[1]:GetPos()), px + sx
 
 					if l == s.line then
-						local element = line[s.element]
-						local sx
-						local px, py = element:GetPos()
-						if isLabel(element) then
-							surface.SetFont(element:GetFont())
-							sx = getTextSizeX(string.sub(element:GetText(), 1, s.char-1))
-						else
-							if s.char > 1 then
-								sx = element:GetWide()
-							else
-								sx = 0
-							end
-						end
-						startX = px + sx
+						startX = getSelectionDrawPosition(s)
 					end
 					if l == e.line then
-						local element = line[e.element]
-						local sx
-						local px, py = element:GetPos()
-						if isLabel(element) then
-							surface.SetFont(element:GetFont())
-							sx = getTextSizeX(string.sub(element:GetText(), 1, e.char))
-						else
-							if e.char > 1 then
-								sx = element:GetWide()
-							else
-								sx = 0
-							end
-						end
-						endX = px + sx
+						endX = getSelectionDrawPosition(e, true)
 					end
 
 					local h = self.fontHeight
@@ -243,6 +213,23 @@ function RICHERTEXT:Init()
 	self.tabSize = 70
 
 	self.ready = true
+end
+
+function getSelectionDrawPosition(char, isEnd)
+	local element = line[char.element]
+	local sx
+	local px = element:GetPos()
+	if isLabel(element) then
+		surface.SetFont(element:GetFont())
+		sx = getTextSizeX(string.sub(element:GetText(), 1, char.char - (isEnd and 1 or 0)))
+	else
+		if char.char > 1 then
+			sx = element:GetWide()
+		else
+			sx = 0
+		end
+	end
+	return px + sx
 end
 
 function RICHERTEXT:SetDoRenderInRange(minY, maxY, value)

@@ -32,7 +32,7 @@ function RTG:UpdateColor()
 end
 
 function RTG:SetSubImage(x, y, w, h)
-	if x == nil then 
+	if x == nil then
 		self.useOffset = false
 	else
 		self.offset.x = x
@@ -53,7 +53,7 @@ function RTG:UpdateGraphic()
 	if self.graphic then self.graphic:Remove() end
 	if not self.doRender then return end
 	if not self.path or not self.type then return end
-	
+
 	if self.type == "image" then
 		local g = vgui.Create("DImage", self)
 		g:Dock(FILL)
@@ -77,14 +77,14 @@ function RTG:UpdateGraphic()
 			else
 				local sx, sy = im.m_Material:Width(), im.m_Material:Height()
 
-				local u0, u1, v0, v1 = im.offset.x/sx, im.offset.y/sy, (im.offset.x + im.offset.w)/sx, (im.offset.y + im.offset.h)/sy
+				local u0, u1, v0, v1 = im.offset.x / sx, im.offset.y / sy, (im.offset.x + im.offset.w) / sx, (im.offset.y + im.offset.h) / sy
 
 				-- Code from DrawTexturedRectUV wiki for removing invalid pixel correction
 				-- local du = 0.5 / 32 -- half pixel anticorrection
 				-- local dv = 0.5 / 32 -- half pixel anticorrection
 				-- u0, v0 = ( u0 - du ) / ( 1 - 2 * du ), ( v0 - dv ) / ( 1 - 2 * dv )
 				-- u1, v1 = ( u1 - du ) / ( 1 - 2 * du ), ( v1 - dv ) / ( 1 - 2 * dv )
-				
+
 				surface.DrawTexturedRectUV( 0, 0, w, h, u0, u1, v0, v1)
 			end
 		end

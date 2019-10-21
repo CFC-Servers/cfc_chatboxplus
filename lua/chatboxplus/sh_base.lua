@@ -2,7 +2,7 @@ cbp = {}
 
 
 if SERVER then
-	
+	print("Server")
 end
 
 if CLIENT then

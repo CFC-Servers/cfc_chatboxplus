@@ -1,3 +1,3 @@
 function cbp.buildBox()
-	
+
 end
